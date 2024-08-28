@@ -7,8 +7,9 @@ import IncidentChart from './IncidentChart';
 import AnomalyTable from './AnomalyTable';
 
 const IncidentDashboard = () => {
-  const [data, setData] = useState(null); // Initializing as null to check if data is loaded
-  const [loading, setLoading] = useState(true); // Loading state
+  const [data, setData] = useState(null); // Initial state is null to differentiate between loading and empty data
+  const [loading, setLoading] = useState(true);
+
   const [filters, setFilters] = useState({
     iceboardId: '',
     application: '',
@@ -21,8 +22,8 @@ const IncidentDashboard = () => {
       const endpoint = 'http://127.0.0.1:5000/analysis';
       const response = await fetch(endpoint);
       const jsonData = await response.json();
-      setData(jsonData || { anomaly_data: [], incident_data: [] });
-      setLoading(false); // Data fetched, stop loading
+      setData(jsonData);
+      setLoading(false); // Data fetched, loading is false
     } catch (error) {
       console.error('Error fetching data from backend: ', error.message);
       setLoading(false);
@@ -65,12 +66,14 @@ const IncidentDashboard = () => {
     if (!data) return { incidentData: [], anomalyData: [] };
 
     return {
-      incidentData: data.incident_data.filter(filterCondition),
-      anomalyData: data.anomaly_data.filter(filterCondition),
+      incidentData: data.incident_data?.filter(filterCondition) || [],
+      anomalyData: data.anomaly_data?.filter(filterCondition) || [],
     };
   }, [filters, data]);
 
   const aggregatedDataForChart = useMemo(() => {
+    if (!filteredData.anomalyData.length && !data?.anomaly_data) return { labels: [], datasets: [] };
+
     const dataToAggregate = filteredData.anomalyData.length > 0 ? filteredData.anomalyData : data.anomaly_data;
 
     const aggregatedData = {};
@@ -169,8 +172,8 @@ const IncidentDashboard = () => {
         <Filters
           filters={filters}
           handleFilterChange={handleFilterChange}
-          incidentData={data.incident_data}
-          anomalyData={data.anomaly_data}
+          incidentData={data?.incident_data || []}
+          anomalyData={data?.anomaly_data || []}
         />
       </Paper>
 
@@ -188,7 +191,7 @@ const IncidentDashboard = () => {
           marginBottom: '24px',
         }}
       >
-        <IncidentTable filteredData={filteredData} />
+        <IncidentTable filteredData={filteredData.incidentData} />
       </Paper>
 
       {/* Bar Chart Section */}
@@ -221,7 +224,7 @@ const IncidentDashboard = () => {
           Anomalies Details
         </Typography>
 
-        <AnomalyTable filteredData={filteredData} />
+        <AnomalyTable filteredData={filteredData.anomalyData} />
       </Paper>
     </Box>
   );
