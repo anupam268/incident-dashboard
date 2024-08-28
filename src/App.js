@@ -1,11 +1,11 @@
 import React from 'react';
 import { Container } from '@mui/material';
-import IncidentTable from './components/IncidentTable';
+import IncidentDashboard from './components/IncidentDashboard';
 
 function App() {
   return (
     <Container>
-      <IncidentTable />
+      <IncidentDashboard />
     </Container>
   );
 }
