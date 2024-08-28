@@ -7,11 +7,8 @@ import IncidentChart from './IncidentChart';
 import AnomalyTable from './AnomalyTable';
 
 const IncidentDashboard = () => {
-  const [data, setData] = useState({
-    anomaly_data: [],
-    incident_data: [],
-  });
-
+  const [data, setData] = useState(null); // Initializing as null to check if data is loaded
+  const [loading, setLoading] = useState(true); // Loading state
   const [filters, setFilters] = useState({
     iceboardId: '',
     application: '',
@@ -25,8 +22,10 @@ const IncidentDashboard = () => {
       const response = await fetch(endpoint);
       const jsonData = await response.json();
       setData(jsonData || { anomaly_data: [], incident_data: [] });
+      setLoading(false); // Data fetched, stop loading
     } catch (error) {
       console.error('Error fetching data from backend: ', error.message);
+      setLoading(false);
     }
   };
 
@@ -47,22 +46,24 @@ const IncidentDashboard = () => {
     });
   };
 
-  // Filter condition function
   const filterCondition = (item) => {
+    if (!item) return false; // Ensure item is defined
+
     const incidentDate = new Date(item.incident_creation_date || item.anomaly_detection_date);
     const incidentMonth = incidentDate.toLocaleString('default', { month: 'long' });
     const incidentWeek = Math.ceil(incidentDate.getDate() / 7);
 
     return (
-      (!filters.iceboardId || item.iceboard_id.includes(filters.iceboardId)) &&
-      (!filters.application || item.main_application.includes(filters.application)) &&
+      (!filters.iceboardId || item.iceboard_id?.includes(filters.iceboardId)) &&
+      (!filters.application || item.main_application?.includes(filters.application)) &&
       (!filters.incidentMonth || incidentMonth === filters.incidentMonth) &&
       (!filters.incidentWeek || incidentWeek.toString() === filters.incidentWeek)
     );
   };
 
-  // Filtered data memoization
   const filteredData = useMemo(() => {
+    if (!data) return { incidentData: [], anomalyData: [] };
+
     return {
       incidentData: data.incident_data.filter(filterCondition),
       anomalyData: data.anomaly_data.filter(filterCondition),
@@ -106,6 +107,14 @@ const IncidentDashboard = () => {
       },
     },
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!data) {
+    return <div>No data available</div>;
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px' }}>
