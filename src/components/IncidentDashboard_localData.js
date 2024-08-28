@@ -1,17 +1,15 @@
+// src/components/IncidentDashboard.js
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Button, Paper, Typography } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import data from '../data/data.json'; // Importing the merged data file
 import Filters from './Filters';
 import IncidentTable from './IncidentTable';
 import IncidentChart from './IncidentChart';
 import AnomalyTable from './AnomalyTable';
 
 const IncidentDashboard = () => {
-  const [data, setData] = useState({
-    anomaly_data: [],
-    incident_data: [],
-  });
-
   const [filters, setFilters] = useState({
     iceboardId: '',
     application: '',
@@ -19,19 +17,10 @@ const IncidentDashboard = () => {
     incidentWeek: '',
   });
 
-  const fetchData = async () => {
-    try {
-      const endpoint = 'http://127.0.0.1:5000/analysis';
-      const response = await fetch(endpoint);
-      const jsonData = await response.json();
-      setData(jsonData || { anomaly_data: [], incident_data: [] });
-    } catch (error) {
-      console.error('Error fetching data from backend: ', error.message);
-    }
-  };
+  const { anomaly_data: anomalyData, incident_data: incidentData } = data; // Destructuring the imported data
 
   useEffect(() => {
-    fetchData();
+    resetFilters();
   }, []);
 
   const handleFilterChange = (key, value) => {
@@ -47,30 +36,28 @@ const IncidentDashboard = () => {
     });
   };
 
-  // Filter condition function
-  const filterCondition = (item) => {
-    const incidentDate = new Date(item.incident_creation_date || item.anomaly_detection_date);
-    const incidentMonth = incidentDate.toLocaleString('default', { month: 'long' });
-    const incidentWeek = Math.ceil(incidentDate.getDate() / 7);
-
-    return (
-      (!filters.iceboardId || item.iceboard_id.includes(filters.iceboardId)) &&
-      (!filters.application || item.main_application.includes(filters.application)) &&
-      (!filters.incidentMonth || incidentMonth === filters.incidentMonth) &&
-      (!filters.incidentWeek || incidentWeek.toString() === filters.incidentWeek)
-    );
-  };
-
-  // Filtered data memoization
   const filteredData = useMemo(() => {
-    return {
-      incidentData: data.incident_data.filter(filterCondition),
-      anomalyData: data.anomaly_data.filter(filterCondition),
+    const filterCondition = (item) => {
+      const incidentDate = new Date(item.incident_creation_date || item.anomaly_detection_date);
+      const incidentMonth = incidentDate.toLocaleString('default', { month: 'long' });
+      const incidentWeek = Math.ceil(incidentDate.getDate() / 7);
+
+      return (
+        (!filters.iceboardId || item.iceboard_id.includes(filters.iceboardId)) &&
+        (!filters.application || item.main_application.includes(filters.application)) &&
+        (!filters.incidentMonth || incidentMonth === filters.incidentMonth) &&
+        (!filters.incidentWeek || incidentWeek.toString() === filters.incidentWeek)
+      );
     };
-  }, [filters, data]);
+
+    return {
+      incidentData: incidentData.filter(filterCondition),
+      anomalyData: anomalyData.filter(filterCondition),
+    };
+  }, [filters, incidentData, anomalyData]);
 
   const aggregatedDataForChart = useMemo(() => {
-    const dataToAggregate = filteredData.anomalyData.length > 0 ? filteredData.anomalyData : data.anomaly_data;
+    const dataToAggregate = filteredData.anomalyData.length > 0 ? filteredData.anomalyData : anomalyData;
 
     const aggregatedData = {};
     dataToAggregate.forEach((item) => {
@@ -109,6 +96,7 @@ const IncidentDashboard = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px' }}>
+
       {/* Filters Section */}
       <Paper
         elevation={3}
@@ -157,11 +145,11 @@ const IncidentDashboard = () => {
           </Button>
         </Box>
 
-        <Filters
-          filters={filters}
-          handleFilterChange={handleFilterChange}
-          incidentData={data.incident_data}
-          anomalyData={data.anomaly_data}
+        <Filters 
+          filters={filters} 
+          handleFilterChange={handleFilterChange} 
+          incidentData={incidentData} 
+          anomalyData={anomalyData} 
         />
       </Paper>
 
@@ -179,11 +167,25 @@ const IncidentDashboard = () => {
           marginBottom: '24px',
         }}
       >
+                  <Typography
+            variant="h4"
+            gutterBottom
+            sx={{
+              fontSize: '2.25rem',
+              fontWeight: 'bold',
+              color: '#1976d2',
+            }}
+          >
+            Incident Details 
+          </Typography>
         <IncidentTable filteredData={filteredData} />
       </Paper>
 
       {/* Bar Chart Section */}
-      <IncidentChart aggregatedDataForChart={aggregatedDataForChart} chartOptions={chartOptions} />
+      <IncidentChart 
+        aggregatedDataForChart={aggregatedDataForChart} 
+        chartOptions={chartOptions} 
+      />
 
       {/* Anomaly Table Section */}
       <Paper
