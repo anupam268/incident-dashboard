@@ -1,15 +1,15 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Box, Button, Paper, Typography } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import Filters from './Filters';
 import IncidentTable from './IncidentTable';
 import IncidentChart from './IncidentChart';
 import AnomalyTable from './AnomalyTable';
+import debounce from 'lodash.debounce';
 
 const IncidentDashboard = () => {
   const [data, setData] = useState(null); // Initial state is null to differentiate between loading and empty data
   const [loading, setLoading] = useState(true);
-
   const [filters, setFilters] = useState({
     iceboardId: '',
     application: '',
@@ -23,7 +23,7 @@ const IncidentDashboard = () => {
       const response = await fetch(endpoint);
       const jsonData = await response.json();
       setData(jsonData || { anomaly_data: [], incident_data: [] });
-      setLoading(false); // Data fetched, loading is false
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching data from backend: ', error.message);
       setLoading(false);
@@ -34,9 +34,12 @@ const IncidentDashboard = () => {
     fetchData();
   }, []);
 
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
+  const handleFilterChange = useCallback(
+    debounce((key, value) => {
+      setFilters((prev) => ({ ...prev, [key]: value }));
+    }, 300),
+    []
+  );
 
   const resetFilters = () => {
     setFilters({
@@ -66,8 +69,8 @@ const IncidentDashboard = () => {
     if (!data) return { incidentData: [], anomalyData: [] };
 
     return {
-      incidentData: (data.incident_data?.filter(filterCondition)) || [],
-      anomalyData: (data.anomaly_data?.filter(filterCondition)) || [],
+      incidentData: data.incident_data?.filter(filterCondition) || [],
+      anomalyData: data.anomaly_data?.filter(filterCondition) || [],
     };
   }, [filters, data]);
 
@@ -76,10 +79,8 @@ const IncidentDashboard = () => {
       return { labels: [], datasets: [] };
     }
 
-    const dataToAggregate = filteredData.anomalyData.length > 0 ? filteredData.anomalyData : data.anomaly_data;
-
     const aggregatedData = {};
-    dataToAggregate.forEach((item) => {
+    filteredData.anomalyData.forEach((item) => {
       const date = new Date(item.anomaly_detection_date).toLocaleDateString('en-GB');
       if (aggregatedData[date]) {
         aggregatedData[date] += parseInt(item.host_anomaly_count, 10);
@@ -193,7 +194,7 @@ const IncidentDashboard = () => {
           marginBottom: '24px',
         }}
       >
-        <IncidentTable filteredData={filteredData.incidentData} />
+        <IncidentTable filteredData={filteredData.incidentData} pageSize={5} />
       </Paper>
 
       {/* Bar Chart Section */}
