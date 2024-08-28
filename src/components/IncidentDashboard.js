@@ -22,7 +22,7 @@ const IncidentDashboard = () => {
       const endpoint = 'http://127.0.0.1:5000/analysis';
       const response = await fetch(endpoint);
       const jsonData = await response.json();
-      setData(jsonData);
+      setData(jsonData || { anomaly_data: [], incident_data: [] });
       setLoading(false); // Data fetched, loading is false
     } catch (error) {
       console.error('Error fetching data from backend: ', error.message);
@@ -117,7 +117,7 @@ const IncidentDashboard = () => {
     return <div>Loading...</div>;
   }
 
-  if (!data) {
+  if (!data || (!data.anomaly_data && !data.incident_data)) {
     return <div>No data available</div>;
   }
 
@@ -174,8 +174,8 @@ const IncidentDashboard = () => {
         <Filters
           filters={filters}
           handleFilterChange={handleFilterChange}
-          incidentData={data?.incident_data || []}
-          anomalyData={data?.anomaly_data || []}
+          incidentData={data.incident_data || []}
+          anomalyData={data.anomaly_data || []}
         />
       </Paper>
 
