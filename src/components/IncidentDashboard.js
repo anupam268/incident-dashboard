@@ -66,13 +66,15 @@ const IncidentDashboard = () => {
     if (!data) return { incidentData: [], anomalyData: [] };
 
     return {
-      incidentData: data.incident_data?.filter(filterCondition) || [],
-      anomalyData: data.anomaly_data?.filter(filterCondition) || [],
+      incidentData: (data.incident_data?.filter(filterCondition)) || [],
+      anomalyData: (data.anomaly_data?.filter(filterCondition)) || [],
     };
   }, [filters, data]);
 
   const aggregatedDataForChart = useMemo(() => {
-    if (!filteredData.anomalyData.length && !data?.anomaly_data) return { labels: [], datasets: [] };
+    if (!filteredData.anomalyData || filteredData.anomalyData.length === 0) {
+      return { labels: [], datasets: [] };
+    }
 
     const dataToAggregate = filteredData.anomalyData.length > 0 ? filteredData.anomalyData : data.anomaly_data;
 
